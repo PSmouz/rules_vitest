@@ -11,7 +11,12 @@ function getRunfilesManifest() {
     return runfilesManifest
   }
 
-  const manifestPath = process.env.RUNFILES_MANIFEST_FILE
+  const manifestPath =
+    process.env.RUNFILES_MANIFEST_FILE ||
+    [
+      process.env.JS_BINARY__RUNFILES ? `${process.env.JS_BINARY__RUNFILES}_manifest` : null,
+      process.env.JS_BINARY__RUNFILES ? path.join(process.env.JS_BINARY__RUNFILES, 'MANIFEST') : null,
+    ].find((candidatePath) => candidatePath && fsSync.existsSync(candidatePath))
   if (!manifestPath) {
     runfilesManifest = null
     return runfilesManifest
