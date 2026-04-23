@@ -150,7 +150,7 @@ async function writeBazelCoverageReport() {
 }
 
 function nodeCommand() {
-  return process.env.JS_BINARY__NODE_BINARY || process.execPath
+  return process.env.JS_BINARY__NODE_WRAPPER || process.env.JS_BINARY__NODE_BINARY || process.execPath
 }
 
 async function runQuietly(command, args, env) {
@@ -199,12 +199,6 @@ async function main() {
     CI: 'true',
     VITEST_SKIP_INSTALL_CHECKS: '1',
   }
-
-  delete env.JS_BINARY__FS_PATCH_ROOTS
-  delete env.JS_BINARY__NODE_PATCHES
-  delete env.JS_BINARY__NODE_PATCHES_DEPTH
-  delete env.JS_BINARY__NODE_WRAPPER
-  env.JS_BINARY__PATCH_NODE_FS = '0'
 
   const quietUpdates =
     process.env.VITEST_BAZEL__UPDATE_SNAPSHOTS === '1' &&
