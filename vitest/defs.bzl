@@ -111,7 +111,7 @@ def vitest_test(
         **kwargs: Passed through to the underlying rule.
     """
     tags = kwargs.pop("tags", [])
-    chdir = kwargs.pop("chdir", native.package_name())
+    chdir = kwargs.pop("chdir", None)
     preserve_symlinks_main = kwargs.pop("preserve_symlinks_main", False)
 
     snapshot_data, snapshot_dirs, snapshot_files = _collect_snapshot_inputs(

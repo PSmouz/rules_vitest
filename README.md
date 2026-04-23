@@ -52,6 +52,20 @@ Run all Vitest tests:
 bazel test //...
 ```
 
+By default, `vitest_test` uses Bazel's standard test working directory. If your tests need a package-relative working directory, opt in explicitly:
+
+```starlark
+vitest_test(
+    name = "unit_test",
+    node_modules = ":node_modules",
+    chdir = native.package_name(),
+    data = [
+        "src/math.js",
+        "src/math.test.js",
+    ],
+)
+```
+
 Filter by file path substring:
 
 ```bash
