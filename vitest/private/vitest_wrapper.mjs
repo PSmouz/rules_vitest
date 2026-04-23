@@ -35,16 +35,61 @@ function getRunfilesManifest() {
   return runfilesManifest
 }
 
+function toLogicalRunfilePath(rootpath) {
+  return [process.env.JS_BINARY__WORKSPACE, ...rootpath.split(/[\\/]+/u).filter(Boolean)].join('/')
+}
+
+function resolveManifestPath(logicalRunfilePath, seen = new Set()) {
+  const manifest = getRunfilesManifest()
+  if (!manifest || seen.has(logicalRunfilePath)) {
+    return null
+  }
+
+  seen.add(logicalRunfilePath)
+
+  const directTarget = manifest.get(logicalRunfilePath)
+  if (directTarget) {
+    if (path.isAbsolute(directTarget)) {
+      return directTarget
+    }
+
+    const redirectedLogicalPath = path.posix.normalize(
+      path.posix.join(path.posix.dirname(logicalRunfilePath), directTarget),
+    )
+
+    return (
+      resolveManifestPath(redirectedLogicalPath, seen) ||
+      path.resolve(process.env.JS_BINARY__RUNFILES, path.posix.dirname(logicalRunfilePath), directTarget)
+    )
+  }
+
+  const parentLogicalPath = path.posix.dirname(logicalRunfilePath)
+  if (parentLogicalPath === logicalRunfilePath || parentLogicalPath === '.') {
+    return null
+  }
+
+  const parentResolvedPath = resolveManifestPath(parentLogicalPath, seen)
+  if (!parentResolvedPath) {
+    return null
+  }
+
+  const relativeSuffix = path.posix.relative(parentLogicalPath, logicalRunfilePath)
+  return path.join(parentResolvedPath, ...relativeSuffix.split('/'))
+}
+
 function resolveRunfilesPath(rootpath) {
-  const logicalRunfilePath = path.join(process.env.JS_BINARY__WORKSPACE, rootpath)
+  const logicalRunfilePath = toLogicalRunfilePath(rootpath)
   const physicalRunfilesPath = path.join(process.env.JS_BINARY__RUNFILES, logicalRunfilePath)
+
+  const manifestResolvedPath = resolveManifestPath(logicalRunfilePath)
+  if (manifestResolvedPath) {
+    return manifestResolvedPath
+  }
 
   if (fsSync.existsSync(physicalRunfilesPath)) {
     return physicalRunfilesPath
   }
-
-  const manifest = getRunfilesManifest()
-  return manifest?.get(logicalRunfilePath) ?? physicalRunfilesPath
+  return physicalRunfilesPath
 }
 
 async function touchShardStatusFile() {
