@@ -150,7 +150,7 @@ async function writeBazelCoverageReport() {
 }
 
 function nodeCommand() {
-  return process.env.JS_BINARY__NODE_WRAPPER || process.env.JS_BINARY__NODE_BINARY || process.execPath
+  return process.env.JS_BINARY__NODE_BINARY || process.execPath
 }
 
 async function runQuietly(command, args, env) {
@@ -193,7 +193,13 @@ async function main() {
   await fs.realpath(process.cwd()).then((cwd) => process.chdir(cwd))
 
   const vitestCliPath = resolveRunfilesPath(process.env.VITEST_BAZEL__VITEST_CLI_RUNFILES_PATH)
-  const args = [vitestCliPath, ...buildVitestArgs()]
+  const args = [
+    ...(process.platform === 'win32' && process.env.JS_BINARY__NODE_PATCHES
+      ? ['--require', process.env.JS_BINARY__NODE_PATCHES]
+      : []),
+    vitestCliPath,
+    ...buildVitestArgs(),
+  ]
   const env = {
     ...process.env,
     CI: 'true',
