@@ -150,8 +150,29 @@ function resolveTestFilePaths() {
   return shortPaths.map((shortPath) => resolveRunfilesPath(shortPath))
 }
 
+function commonDirectoryPath(filePaths) {
+  if (filePaths.length === 0) {
+    return null
+  }
+
+  const [firstPath, ...remainingPaths] = filePaths.map((filePath) => path.resolve(path.dirname(filePath)))
+  let sharedPath = firstPath
+
+  for (const nextPath of remainingPaths) {
+    while (
+      sharedPath !== path.dirname(sharedPath) &&
+      nextPath !== sharedPath &&
+      !nextPath.startsWith(`${sharedPath}${path.sep}`)
+    ) {
+      sharedPath = path.dirname(sharedPath)
+    }
+  }
+
+  return sharedPath
+}
+
 function resolvePackagePath() {
-  return resolveRunfilesPath(process.env.JS_BINARY__PACKAGE || '')
+  return commonDirectoryPath(resolveTestFilePaths()) || resolveRunfilesPath(process.env.JS_BINARY__PACKAGE || '')
 }
 
 async function touchShardStatusFile() {
