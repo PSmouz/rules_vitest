@@ -150,6 +150,10 @@ function resolveTestFilePaths() {
   return shortPaths.map((shortPath) => resolveRunfilesPath(shortPath))
 }
 
+function resolvePackagePath() {
+  return resolveRunfilesPath(process.env.JS_BINARY__PACKAGE || '')
+}
+
 async function touchShardStatusFile() {
   if (!process.env.TEST_TOTAL_SHARDS || !process.env.TEST_SHARD_STATUS_FILE) {
     return
@@ -181,7 +185,8 @@ function buildVitestArgs() {
     !hasCliPathArg(args, '-r', '--root') &&
     !hasCliPathArg(args, '--dir', '--dir')
   ) {
-    args.push('--dir', resolveRunfilesPath(process.env.JS_BINARY__PACKAGE || ''))
+    const packagePath = resolvePackagePath()
+    args.push('--root', packagePath, '--dir', packagePath)
   }
 
   if (process.platform === 'win32' && !process.env.TESTBRIDGE_TEST_ONLY) {
@@ -319,7 +324,10 @@ async function runWithInheritedStdio(command, args, env) {
 
 async function main() {
   await touchShardStatusFile()
-  await fs.realpath(process.cwd()).then((cwd) => process.chdir(cwd))
+  const workingDirectory = process.platform === 'win32'
+    ? resolvePackagePath()
+    : process.cwd()
+  await fs.realpath(workingDirectory).then((cwd) => process.chdir(cwd))
 
   const vitestCliPath = resolveRunfilesPath(process.env.VITEST_BAZEL__VITEST_CLI_RUNFILES_PATH)
   const args = [
