@@ -2,4 +2,7 @@ node_modules
 example/node_modules
 e2e/bzlmod/node_modules
 e2e/bzlmod
-bazel-*
+bazel-bin
+bazel-out
+bazel-testlogs
+bazel-rules_vitest

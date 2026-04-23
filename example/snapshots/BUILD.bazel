@@ -4,7 +4,6 @@ vitest_test(
     name = "test",
     node_modules = "//:node_modules",
     data = [
-        "__snapshots__/render.test.js.snap",
         "render.js",
         "render.test.js",
     ],

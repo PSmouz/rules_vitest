@@ -5,7 +5,6 @@ vitest_test(
     node_modules = "//:node_modules",
     config = "vitest.config.mjs",
     data = [
-        "__snaps__/custom.test.js.snap",
         "custom.js",
         "custom.test.js",
         "vitest.config.mjs",

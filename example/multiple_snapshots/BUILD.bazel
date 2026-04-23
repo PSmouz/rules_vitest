@@ -4,10 +4,8 @@ vitest_test(
     name = "test",
     node_modules = "//:node_modules",
     data = [
-        "alpha/__snapshots__/alpha.test.js.snap",
         "alpha/alpha.js",
         "alpha/alpha.test.js",
-        "beta/__snapshots__/beta.test.js.snap",
         "beta/beta.js",
         "beta/beta.test.js",
     ],
