@@ -1,14 +1,50 @@
+import fsSync from 'node:fs'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { spawn } from 'node:child_process'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
+let runfilesManifest
+
+function getRunfilesManifest() {
+  if (runfilesManifest !== undefined) {
+    return runfilesManifest
+  }
+
+  const manifestPath = process.env.RUNFILES_MANIFEST_FILE
+  if (!manifestPath) {
+    runfilesManifest = null
+    return runfilesManifest
+  }
+
+  runfilesManifest = new Map()
+
+  for (const line of fsSync.readFileSync(manifestPath, 'utf8').split(/\r?\n/u)) {
+    if (!line) {
+      continue
+    }
+
+    const separatorIndex = line.indexOf(' ')
+    if (separatorIndex === -1) {
+      continue
+    }
+
+    runfilesManifest.set(line.slice(0, separatorIndex), line.slice(separatorIndex + 1))
+  }
+
+  return runfilesManifest
+}
+
 function resolveRunfilesPath(rootpath) {
-  return path.join(
-    process.env.JS_BINARY__RUNFILES,
-    process.env.JS_BINARY__WORKSPACE,
-    rootpath,
-  )
+  const logicalRunfilePath = path.join(process.env.JS_BINARY__WORKSPACE, rootpath)
+  const physicalRunfilesPath = path.join(process.env.JS_BINARY__RUNFILES, logicalRunfilePath)
+
+  if (fsSync.existsSync(physicalRunfilesPath)) {
+    return physicalRunfilesPath
+  }
+
+  const manifest = getRunfilesManifest()
+  return manifest?.get(logicalRunfilePath) ?? physicalRunfilesPath
 }
 
 async function touchShardStatusFile() {
