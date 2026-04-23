@@ -96,6 +96,12 @@ def _impl(ctx):
         "VITEST_BAZEL__QUIET_SNAPSHOT_UPDATES": "1" if ctx.attr.quiet_snapshot_updates else "",
         "VITEST_BAZEL__SNAPSHOT_MANIFEST_SHORT_PATH": snapshot_manifest.short_path,
         "VITEST_BAZEL__SNAPSHOT_SYNC_HELPER_SHORT_PATH": ctx.file._snapshot_sync_helper.short_path,
+        "VITEST_BAZEL__TEST_FILE_SHORT_PATHS": json.encode([
+            file.short_path
+            for file in ctx.files.data
+            if (ctx.attr.package == "" or file.short_path.startswith(ctx.attr.package + "/")) and
+               (".test." in file.basename or ".spec." in file.basename)
+        ]),
         "VITEST_BAZEL__UPDATE_SNAPSHOTS": "1" if ctx.attr.update_snapshots else "",
         "VITEST_BAZEL__VITEST_CLI_RUNFILES_PATH": ctx.attr.vitest_cli_runfiles_path,
         "VITEST_BAZEL__VITE_RUNFILES_PATH": ctx.attr.vite_runfiles_path,

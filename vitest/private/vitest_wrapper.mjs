@@ -145,6 +145,11 @@ function hasCliPathArg(args, shortFlag, longFlag) {
   return args.some((arg) => arg === shortFlag || arg === longFlag || arg.startsWith(`${longFlag}=`))
 }
 
+function resolveTestFilePaths() {
+  const shortPaths = JSON.parse(process.env.VITEST_BAZEL__TEST_FILE_SHORT_PATHS || '[]')
+  return shortPaths.map((shortPath) => resolveRunfilesPath(shortPath))
+}
+
 async function touchShardStatusFile() {
   if (!process.env.TEST_TOTAL_SHARDS || !process.env.TEST_SHARD_STATUS_FILE) {
     return
@@ -177,6 +182,10 @@ function buildVitestArgs() {
     !hasCliPathArg(args, '--dir', '--dir')
   ) {
     args.push('--dir', resolveRunfilesPath(process.env.JS_BINARY__PACKAGE || ''))
+  }
+
+  if (process.platform === 'win32' && !process.env.TESTBRIDGE_TEST_ONLY) {
+    args.push(...resolveTestFilePaths())
   }
 
   if (process.env.TEST_TOTAL_SHARDS) {
