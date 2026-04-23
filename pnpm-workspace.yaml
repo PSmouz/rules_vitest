@@ -1,0 +1,4 @@
+packages:
+  - "example"
+  - "e2e/bzlmod"
+onlyBuiltDependencies: []

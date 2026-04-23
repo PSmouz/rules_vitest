@@ -1,0 +1,10 @@
+load("//vitest:defs.bzl", "vitest_test")
+
+vitest_test(
+    name = "test",
+    node_modules = "//:node_modules",
+    data = [
+        "alpha.test.js",
+        "beta.test.js",
+    ],
+)

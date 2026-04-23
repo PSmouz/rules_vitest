@@ -1,0 +1,7 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`uses a custom snapshot directory 1`] = `
+{
+  "answer": 42,
+}
+`;

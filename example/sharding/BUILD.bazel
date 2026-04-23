@@ -1,0 +1,13 @@
+load("//vitest:defs.bzl", "vitest_test")
+
+vitest_test(
+    name = "test",
+    node_modules = "//:node_modules",
+    shard_count = 2,
+    data = [
+        "a.test.js",
+        "b.test.js",
+        "c.test.js",
+        "shared.js",
+    ],
+)

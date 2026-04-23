@@ -1,0 +1,13 @@
+load("//vitest:defs.bzl", "vitest_test")
+
+vitest_test(
+    name = "test",
+    node_modules = "//:node_modules",
+    config = "vitest.config.mjs",
+    auto_configure_reporters = False,
+    data = [
+        "truth.js",
+        "truth.test.js",
+        "vitest.config.mjs",
+    ],
+)

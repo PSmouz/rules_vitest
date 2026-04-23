@@ -1,0 +1,14 @@
+load("//vitest:defs.bzl", "vitest_test")
+
+vitest_test(
+    name = "test",
+    node_modules = "//:node_modules",
+    config = "vitest.config.mjs",
+    data = [
+        "__snaps__/custom.test.js.snap",
+        "custom.js",
+        "custom.test.js",
+        "vitest.config.mjs",
+    ],
+    snapshots = ["__snaps__"],
+)

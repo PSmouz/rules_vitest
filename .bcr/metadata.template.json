@@ -1,0 +1,13 @@
+{
+  "homepage": "https://github.com/example/rules_vitest",
+  "maintainers": [
+    {
+      "name": "Placeholder Maintainer",
+      "email": "maintainer@example.com",
+      "github": "example"
+    }
+  ],
+  "repository": ["github:example/rules_vitest"],
+  "versions": [],
+  "yanked_versions": {}
+}

@@ -1,0 +1,13 @@
+load("//vitest:defs.bzl", "vitest_test")
+
+vitest_test(
+    name = "test",
+    node_modules = "//:node_modules",
+    config = "vitest.config.mjs",
+    data = [
+        "custom_reporter.cjs",
+        "math.js",
+        "math.test.js",
+        "vitest.config.mjs",
+    ],
+)

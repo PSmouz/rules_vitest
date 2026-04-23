@@ -1,0 +1,13 @@
+load("//vitest:defs.bzl", "vitest_test")
+
+exports_files(["package.json"])
+
+vitest_test(
+    name = "test",
+    node_modules = "//:node_modules",
+    data = [
+        "add.mjs",
+        "add.test.mjs",
+        "package.json",
+    ],
+)
