@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { spawn } from 'node:child_process'
-import { pathToFileURL } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 
 function resolveRunfilesPath(rootpath) {
   return path.join(
@@ -41,6 +41,76 @@ async function loadSnapshotSync() {
     resolveRunfilesPath(process.env.VITEST_BAZEL__SNAPSHOT_SYNC_HELPER_SHORT_PATH),
   ).href
   return import(helperUrl)
+}
+
+function normalizeCoverageSourcePath(sourcePath) {
+  let nextPath = sourcePath
+
+  if (nextPath.startsWith('file://')) {
+    nextPath = fileURLToPath(nextPath)
+  }
+
+  const workspaceMarker = `${path.sep}_main${path.sep}`
+  const runfilesMarker = `${path.sep}.runfiles${path.sep}_main${path.sep}`
+
+  if (nextPath.includes(runfilesMarker)) {
+    nextPath = nextPath.split(runfilesMarker).pop()
+  } else if (nextPath.includes(workspaceMarker)) {
+    nextPath = nextPath.split(workspaceMarker).pop()
+  } else if (!path.isAbsolute(nextPath)) {
+    const packagePath = process.env.JS_BINARY__PACKAGE || ''
+    nextPath = packagePath ? path.posix.join(packagePath, nextPath) : nextPath
+  }
+
+  nextPath = nextPath.split(path.sep).join(path.posix.sep)
+
+  if (
+    nextPath.startsWith('vitest/private/') ||
+    nextPath.includes('/vitest/private/') ||
+    nextPath.endsWith('_test_vitest_wrapper.mjs') ||
+    nextPath.endsWith('__vitest.config.mjs')
+  ) {
+    return null
+  }
+
+  return nextPath
+}
+
+async function writeBazelCoverageReport() {
+  if (!process.env.COVERAGE_DIR || !process.env.COVERAGE_OUTPUT_FILE) {
+    return
+  }
+
+  const vitestLcovPath = path.join(process.env.COVERAGE_DIR, 'vitest', 'lcov.info')
+  const lcovSource = await fs.readFile(vitestLcovPath, 'utf8')
+  const lines = lcovSource.split('\n')
+  const nextLines = []
+  let keepRecord = true
+
+  for (const line of lines) {
+    if (line.startsWith('SF:')) {
+      const normalizedPath = normalizeCoverageSourcePath(line.slice(3))
+      keepRecord = normalizedPath !== null
+      if (keepRecord) {
+        nextLines.push(`SF:${normalizedPath}`)
+      }
+      continue
+    }
+
+    if (line === 'end_of_record') {
+      if (keepRecord) {
+        nextLines.push(line)
+      }
+      keepRecord = true
+      continue
+    }
+
+    if (keepRecord) {
+      nextLines.push(line)
+    }
+  }
+
+  await fs.writeFile(process.env.COVERAGE_OUTPUT_FILE, nextLines.join('\n'))
 }
 
 function nodeCommand() {
@@ -84,6 +154,7 @@ async function runWithInheritedStdio(command, args, env) {
 
 async function main() {
   await touchShardStatusFile()
+  await fs.realpath(process.cwd()).then((cwd) => process.chdir(cwd))
 
   const vitestCliPath = resolveRunfilesPath(process.env.VITEST_BAZEL__VITEST_CLI_RUNFILES_PATH)
   const args = [vitestCliPath, ...buildVitestArgs()]
@@ -93,12 +164,22 @@ async function main() {
     VITEST_SKIP_INSTALL_CHECKS: '1',
   }
 
+  delete env.JS_BINARY__FS_PATCH_ROOTS
+  delete env.JS_BINARY__NODE_PATCHES
+  delete env.JS_BINARY__NODE_PATCHES_DEPTH
+  delete env.JS_BINARY__NODE_WRAPPER
+  env.JS_BINARY__PATCH_NODE_FS = '0'
+
   const quietUpdates =
     process.env.VITEST_BAZEL__UPDATE_SNAPSHOTS === '1' &&
     process.env.VITEST_BAZEL__QUIET_SNAPSHOT_UPDATES === '1'
   const exitCode = quietUpdates
     ? await runQuietly(nodeCommand(), args, env)
     : await runWithInheritedStdio(nodeCommand(), args, env)
+
+  if (exitCode === 0) {
+    await writeBazelCoverageReport()
+  }
 
   if (exitCode === 0 && process.env.VITEST_BAZEL__UPDATE_SNAPSHOTS === '1') {
     const snapshotManifestPath = resolveRunfilesPath(
