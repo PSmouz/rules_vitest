@@ -40,8 +40,21 @@ function getRunfilesManifest() {
   return runfilesManifest
 }
 
+function stripEnclosingQuotes(value) {
+  if (value.length >= 2) {
+    const firstChar = value[0]
+    const lastChar = value[value.length - 1]
+    if ((firstChar === "'" && lastChar === "'") || (firstChar === '"' && lastChar === '"')) {
+      return value.slice(1, -1)
+    }
+  }
+
+  return value
+}
+
 function toLogicalRunfilePath(rootpath) {
-  return [process.env.JS_BINARY__WORKSPACE, ...rootpath.split(/[\\/]+/u).filter(Boolean)].join('/')
+  const normalizedRootpath = stripEnclosingQuotes(rootpath)
+  return [process.env.JS_BINARY__WORKSPACE, ...normalizedRootpath.split(/[\\/]+/u).filter(Boolean)].join('/')
 }
 
 function resolveManifestPath(logicalRunfilePath, seen = new Set()) {
@@ -97,6 +110,37 @@ function resolveRunfilesPath(rootpath) {
   return physicalRunfilesPath
 }
 
+function extractRunfilesRootpath(candidatePath) {
+  const normalizedPath = stripEnclosingQuotes(candidatePath)
+  const normalizedSeparatorsPath = normalizedPath.replaceAll('\\', '/')
+  const runfilesWorkspaceMarker = `/.runfiles/${process.env.JS_BINARY__WORKSPACE}/`
+
+  if (normalizedSeparatorsPath.includes(runfilesWorkspaceMarker)) {
+    return normalizedSeparatorsPath.split(runfilesWorkspaceMarker).pop()
+  }
+
+  if (normalizedSeparatorsPath.startsWith(`${process.env.JS_BINARY__WORKSPACE}/`)) {
+    return normalizedSeparatorsPath.slice(process.env.JS_BINARY__WORKSPACE.length + 1)
+  }
+
+  if (!path.isAbsolute(normalizedPath)) {
+    return normalizedSeparatorsPath
+  }
+
+  return null
+}
+
+function normalizeConfigPath(configPath) {
+  const strippedPath = stripEnclosingQuotes(configPath)
+  const runfilesRootpath = extractRunfilesRootpath(strippedPath)
+
+  if (runfilesRootpath) {
+    return resolveRunfilesPath(runfilesRootpath)
+  }
+
+  return strippedPath
+}
+
 async function touchShardStatusFile() {
   if (!process.env.TEST_TOTAL_SHARDS || !process.env.TEST_SHARD_STATUS_FILE) {
     return
@@ -108,6 +152,20 @@ async function touchShardStatusFile() {
 
 function buildVitestArgs() {
   const args = process.argv.slice(2)
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index]
+    if (arg === '--config' && args[index + 1]) {
+      args[index + 1] = normalizeConfigPath(args[index + 1])
+      index += 1
+      continue
+    }
+
+    if (arg.startsWith('--config=')) {
+      const [, configPath] = arg.split(/=(.*)/su)
+      args[index] = `--config=${normalizeConfigPath(configPath)}`
+    }
+  }
 
   if (process.env.TEST_TOTAL_SHARDS) {
     const shardIndex = Number(process.env.TEST_SHARD_INDEX || '0') + 1
