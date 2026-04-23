@@ -29,6 +29,10 @@ async function loadUserConfig(userConfigShortPath) {
       isPreview: false,
     },
     configPath,
+    process.cwd(),
+    undefined,
+    undefined,
+    'runner',
   )
 
   return loaded?.config ?? {}
