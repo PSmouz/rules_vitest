@@ -81,6 +81,8 @@ def _impl(ctx):
         "run",
         "--config",
         "'" + paths.join(unwind_chdir_prefix, generated_config.short_path) + "'",
+        "--configLoader",
+        "runner",
     ])
     if ctx.attr.run_in_band:
         fixed_args.append("--no-file-parallelism")
