@@ -141,6 +141,10 @@ function normalizeConfigPath(configPath) {
   return strippedPath
 }
 
+function hasCliPathArg(args, shortFlag, longFlag) {
+  return args.some((arg) => arg === shortFlag || arg === longFlag || arg.startsWith(`${longFlag}=`))
+}
+
 async function touchShardStatusFile() {
   if (!process.env.TEST_TOTAL_SHARDS || !process.env.TEST_SHARD_STATUS_FILE) {
     return
@@ -165,6 +169,14 @@ function buildVitestArgs() {
       const [, configPath] = arg.split(/=(.*)/su)
       args[index] = `--config=${normalizeConfigPath(configPath)}`
     }
+  }
+
+  if (
+    process.platform === 'win32' &&
+    !hasCliPathArg(args, '-r', '--root') &&
+    !hasCliPathArg(args, '--dir', '--dir')
+  ) {
+    args.push('--dir', resolveRunfilesPath(process.env.JS_BINARY__PACKAGE || ''))
   }
 
   if (process.env.TEST_TOTAL_SHARDS) {
